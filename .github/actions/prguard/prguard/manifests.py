@@ -228,6 +228,74 @@ def _run_dbt(args: list[str], project_dir: Path, env: dict[str, str]) -> None:
         )
 
 
+def _run_git(
+    args: list[str], cwd: Path, *, check: bool = True
+) -> subprocess.CompletedProcess:
+    """Run a git command, surfacing git's own stderr on failure.
+
+    `git worktree add` fails for several mundane reasons (an unresolvable
+    ref, a shallow clone, an untrusted repository directory). Letting a bare
+    CalledProcessError escape hides the one line that says which.
+    """
+    cmd = ["git", *args]
+    try:
+        result = subprocess.run(
+            cmd, cwd=cwd, capture_output=True, text=True
+        )
+    except FileNotFoundError as exc:
+        raise ManifestError(
+            "the 'git' executable was not found; PRGuard needs git to check "
+            "out the PR's base ref."
+        ) from exc
+    if check and result.returncode != 0:
+        raise ManifestError(
+            f"'{' '.join(cmd)}' failed (exit {result.returncode}):\n"
+            f"{result.stdout.strip()}\n{result.stderr.strip()}"
+        )
+    return result
+
+
+def _trust_repo_dir(repo_dir: Path) -> None:
+    """Mark `repo_dir` as a safe git directory.
+
+    A Docker container action runs as root while the checkout on the host is
+    owned by the runner user, so git refuses to operate on it ("detected
+    dubious ownership"). actions/checkout applies the same fix to its own
+    temporary global config, which this container never sees. The container
+    is ephemeral, so writing to the global config here is harmless.
+    """
+    _run_git(
+        ["config", "--global", "--add", "safe.directory", str(repo_dir)],
+        repo_dir,
+        check=False,
+    )
+
+
+def _resolve_base_ref(repo_dir: Path, base_ref: str) -> str:
+    """Return a base ref git can actually resolve.
+
+    The PR event gives a bare branch name (`main`); after actions/checkout
+    that usually exists only as a remote-tracking ref, so fall back to
+    `origin/<ref>` before giving up.
+    """
+    candidates = [base_ref]
+    if not base_ref.startswith("origin/"):
+        candidates.append(f"origin/{base_ref}")
+    for candidate in candidates:
+        probe = _run_git(
+            ["rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}"],
+            repo_dir,
+            check=False,
+        )
+        if probe.returncode == 0:
+            return candidate
+    raise ManifestError(
+        f"could not resolve the PR's base ref ({', '.join(candidates)}) in "
+        f"{repo_dir}. If your checkout is shallow, set "
+        "`fetch-depth: 0` on actions/checkout so the base branch is available."
+    )
+
+
 def prepare_base_and_head_manifests(
     repo_dir: str | Path,
     project_subdir: str,
@@ -252,13 +320,13 @@ def prepare_base_and_head_manifests(
     if base_manifest_path is not None:
         return Path(base_manifest_path), head_manifest
 
+    _trust_repo_dir(repo_dir)
+    resolved_base_ref = _resolve_base_ref(repo_dir, base_ref)
+
     worktree_dir = work_dir / "base-worktree"
-    subprocess.run(
-        ["git", "worktree", "add", "--detach", str(worktree_dir), base_ref],
-        cwd=repo_dir,
-        check=True,
-        capture_output=True,
-        text=True,
+    _run_git(
+        ["worktree", "add", "--detach", str(worktree_dir), resolved_base_ref],
+        repo_dir,
     )
     try:
         base_project_dir = worktree_dir / project_subdir
@@ -270,12 +338,10 @@ def prepare_base_and_head_manifests(
         base_manifest.parent.mkdir(parents=True, exist_ok=True)
         base_manifest.write_bytes(generated_base_manifest.read_bytes())
     finally:
-        subprocess.run(
-            ["git", "worktree", "remove", "--force", str(worktree_dir)],
-            cwd=repo_dir,
+        _run_git(
+            ["worktree", "remove", "--force", str(worktree_dir)],
+            repo_dir,
             check=False,
-            capture_output=True,
-            text=True,
         )
 
     return base_manifest, head_manifest
