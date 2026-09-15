@@ -1,0 +1,5 @@
+id,user_id,signup_date,channel
+1,1,2018-01-01,organic
+2,3,2018-01-02,paid_search
+3,7,2018-01-04,referral
+4,12,2018-01-09,organic
