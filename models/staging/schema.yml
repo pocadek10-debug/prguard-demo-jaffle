@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer, cleaned up from the raw customer feed.
+    columns:
+      - name: customer_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        description: Customer's first name. PII.
+      - name: last_name
+        description: Customer's last name. PII.
+
+  - name: stg_orders
+    description: One row per order.
+    columns:
+      - name: order_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to stg_customers.
+        tests:
+          - not_null
+      - name: order_date
+        description: Date (UTC) the order was placed.
+      - name: status
+        description: Current fulfilment status of the order.
+        tests:
+          - accepted_values:
+              values: ['placed', 'shipped', 'completed', 'return_pending', 'returned']
+
+  - name: stg_payments
+    description: One row per payment.
+    columns:
+      - name: payment_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: Foreign key to stg_orders.
+        tests:
+          - not_null
+      - name: payment_method
+        description: How the customer paid.
+        tests:
+          - accepted_values:
+              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
+      - name: amount
+        description: Payment amount in dollars.

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prguard-dbt"
+version = "0.1.0"
+description = "GitHub Action that comments on dbt pull requests with downstream impact, missing tests, breaking changes, and test-coverage delta — using dbt's manifest.json only."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "PyYAML>=6.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "responses>=0.25",
+]
+
+[project.scripts]
+prguard = "prguard.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["prguard*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

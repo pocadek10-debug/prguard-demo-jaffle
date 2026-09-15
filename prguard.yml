@@ -1,0 +1,7 @@
+version: 1
+dbt_project_dir: "."
+strict: true
+coverage:
+  warn_below: 0.8
+comment:
+  show_details: true

@@ -1,0 +1,24 @@
+name: PRGuard
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  prguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history so the base ref can be checked out
+
+      # Pre-release: the action is vendored into this repo (see
+      # .github/actions/prguard/README-VENDORED.md). Once the action repo is
+      # public this becomes: uses: pocadek10-debug/prguard-dbt@v1
+      - uses: ./.github/actions/prguard
+        with:
+          dbt-project-dir: "."

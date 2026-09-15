@@ -1,0 +1,44 @@
+name: "PRGuard for dbt"
+description: >-
+  Comments on dbt pull requests with downstream impact, missing tests,
+  breaking changes, and test-coverage delta — using dbt's manifest.json
+  only (no warehouse connection required).
+author: "PRGuard"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  dbt-project-dir:
+    description: "Path to the dbt project (where dbt_project.yml lives), relative to the repo root."
+    required: false
+    default: "."
+  base-manifest-path:
+    description: >-
+      Optional path to a pre-built base-branch manifest.json (e.g. downloaded
+      as a workflow artifact from your default branch's CI run). When set,
+      PRGuard skips generating the base manifest via git worktree + dbt parse.
+    required: false
+    default: ""
+  config-path:
+    description: "Path to prguard.yml, relative to the repo root."
+    required: false
+    default: "prguard.yml"
+  repo-dir:
+    description: >-
+      Path to the git repository checkout. Leave blank: PRGuard then uses
+      $GITHUB_WORKSPACE, which is where the runner mounts the checkout inside
+      the container. Do NOT set this to ${{ github.workspace }} — that expands
+      to the runner's host path, which does not exist in the container.
+    required: false
+    default: ""
+  github-token:
+    description: "Token used to read PR data and post the PRGuard comment/check run."
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    GITHUB_TOKEN: ${{ inputs.github-token }}

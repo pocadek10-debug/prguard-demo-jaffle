@@ -1,0 +1,30 @@
+version: 2
+
+exposures:
+  - name: exec_revenue_dashboard
+    label: "Exec Revenue Dashboard"
+    type: dashboard
+    maturity: high
+    url: https://bi.example.com/dashboards/exec-revenue
+    description: >
+      Weekly revenue review used by the leadership team. Sliced by payment
+      method and month.
+    depends_on:
+      - ref('monthly_revenue')
+      - ref('fct_revenue')
+    owner:
+      name: Data Team
+      email: data@example.com
+
+  - name: customer_health_report
+    label: "Customer Health Report"
+    type: analysis
+    maturity: medium
+    description: >
+      Monthly customer health and LTV review shared with Customer Success.
+    depends_on:
+      - ref('customer_ltv')
+      - ref('dim_customers')
+    owner:
+      name: Data Team
+      email: data@example.com
