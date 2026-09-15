@@ -28,8 +28,9 @@ inputs:
     description: >-
       Path to the git repository checkout. Leave blank: PRGuard then uses
       $GITHUB_WORKSPACE, which is where the runner mounts the checkout inside
-      the container. Do NOT set this to ${{ github.workspace }} — that expands
-      to the runner's host path, which does not exist in the container.
+      the container. Do not point this at the workflow's github.workspace
+      value -- that is the runner's host path and does not exist inside the
+      container.
     required: false
     default: ""
   github-token:

@@ -22,7 +22,7 @@ models:
         tests:
           - unique
           - not_null
-      - name: customer_id
+      - name: user_id
         description: Foreign key to stg_customers.
         tests:
           - not_null
@@ -46,10 +46,20 @@ models:
         description: Foreign key to stg_orders.
         tests:
           - not_null
-      - name: payment_method
-        description: How the customer paid.
-        tests:
-          - accepted_values:
-              values: ['credit_card', 'coupon', 'bank_transfer', 'gift_card']
       - name: amount
         description: Payment amount in dollars.
+
+  - name: stg_signups
+    description: One row per signup event.
+    columns:
+      - name: signup_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to stg_customers.
+      - name: signup_date
+        description: Date (UTC) the customer signed up.
+      - name: channel
+        description: Acquisition channel.
